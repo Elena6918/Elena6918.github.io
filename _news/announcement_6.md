@@ -1,7 +1,7 @@
 ---
 layout: post
-date: 2024-08-14
+date: 2025-07-06
 inline: true
 ---
 
-I will serve in the upcoming PoPETS Artifact Evaluation Committee for 2025.
+I have served as a reviewer in the 2025 PoPETS Artifact Evaluation Committee.

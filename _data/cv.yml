@@ -35,7 +35,8 @@
       year: 2022 - NOW
       description:
         - 2023 - Evaluating Google's Protected Audience Protocol
-        - 2024 - Deepfake Video Detection
+        - 2024 - Deepfake Audio-Visual Video Detection
+        - 2025 - Evaluating Host-based Intrusion Detection System
     - title: Undergraduate Research Assistant
       institution: University of Virginia, Charlottesville, United States
       year: 2019 - 2022
@@ -53,7 +54,7 @@
       year: 2020-2021
       description:
         - Built a non-profit startup to address post-COVID mental health crisis by building mental health workforce and disseminating primary care to hard-to-reach areas in resource-limited settings in digital platforms.
-        - Developed an mobile app with React Native, Expo, and Amazon document DB in AWS.
+        - Developed a mobile app with React Native, Expo, and Amazon document DB in AWS.
         - Incubated at Harvard Innovation Lab and ranked 6th/2000 in 2021 Global Health & Innovation Conference Final Competition.
 
     - title: Software Engineer Intern 
