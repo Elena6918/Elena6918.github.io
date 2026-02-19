@@ -6,7 +6,7 @@ subtitle: CS PhD Candidate at <a href='https://engineering.virginia.edu/'>Univer
 
 profile:
   align: right
-  image: prof_pic_25.jpg
+  image: prof_pic_26.jpg
   image_circular: false # crops the image to make it circular
   address: 
     <p>Rice Hall 336</p>
@@ -32,7 +32,7 @@ More recently, my work has centered on the evolution of host-based intrusion det
 I am **actively seeking research internships** and **full-time roles** where I can apply empirical evaluation and security analysis to real systems and datasets, working closely with engineering and threat assessment teams to surface actionable insights. I am particularly interested in industrial research roles that emphasize security effectiveness, detection efficacy, trustworthy system evaluation, and empirical analysis of complex deployed systems.
 
 
-My Chinese name is written as 龙玟君, and I go by Elena in my daily life. I drew my self-portrait on the right with <a href='https://procreate.com/'>Procreate</a>, celebrating the Year of the Snake (2025).  
+My Chinese name is written as 龙玟君, and I go by Elena in my daily life. I drew my self-portrait on the right with <a href='https://procreate.com/'>Procreate</a>, celebrating the Year of the Horse (2026).  
 
 <!-- Put your address / P.O. box / other info right below your picture. You can also disable any these elements by editing `profile` property of the YAML header of your `_pages/about.md`. Edit `_bibliography/papers.bib` and Jekyll will render your [publications page](/al-folio/publications/) automatically.
 
