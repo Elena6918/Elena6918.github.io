@@ -1,1 +1,0 @@
-{"lineage_id":"lineage_02077","display_name":"invalid_sigma-wrong_identifier_definition","rule_canonical":"tests/invalid_sigma-wrong_identifier_definition.yml","versions":[{"vi":1,"date":"2017-10-23T21:30:44Z","hash":"65e1f8ec","subject":"Increased test coverage","detection":"foo: test\ncondition: foo","spl":"\"test\"","delta":0.0}]}

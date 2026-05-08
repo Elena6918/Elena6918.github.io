@@ -38,6 +38,21 @@ html[data-theme="dark"], .dark-mode {
 /* ── layout ── */
 #rule-explorer { max-width: 900px; margin: 0 auto; }
 
+/* ── repo switcher ── */
+.re-repo-switcher {
+  display: flex; gap: .4rem; margin-bottom: 1rem;
+}
+.re-repo-btn {
+  padding: .4rem .9rem; border: 1px solid var(--re-border); border-radius: 20px;
+  background: transparent; color: var(--re-label-color); cursor: pointer;
+  font-size: .85rem; transition: all .15s;
+}
+.re-repo-btn:hover { border-color: var(--re-dot-a); color: var(--re-dot-a); }
+.re-repo-btn.active {
+  background: var(--re-dot-a); border-color: var(--re-dot-a);
+  color: #fff; font-weight: 600;
+}
+
 /* ── search ── */
 #re-search-wrapper { position: relative; margin-bottom: 1rem; }
 .re-search-row { display: flex; gap: .5rem; }
@@ -218,6 +233,12 @@ html[data-theme="dark"], .dark-mode {
 </style>
 
 <div id="rule-explorer">
+
+  <!-- ── Repo switcher ── -->
+  <div class="re-repo-switcher">
+    <button class="re-repo-btn active" data-repo="sigma">Sigma</button>
+    <button class="re-repo-btn" data-repo="ssc">Splunk Security Content</button>
+  </div>
 
   <!-- ── Search + Browse toggle ── -->
   <div id="re-search-wrapper">

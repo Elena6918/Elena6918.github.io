@@ -2,7 +2,10 @@
 (function () {
   "use strict";
 
-  const DATA_BASE = "/assets/data/sigma/";
+  const DATA_REPO = "https://elena6918.github.io/rule-explorer-data/";
+  let activeRepo = "sigma"; // "sigma" | "ssc"
+
+  function dataBase() { return DATA_REPO + activeRepo + "/"; }
 
   /* ── state ─────────────────────────────────────────────────── */
   let searchIndex = [];   // [{id, name, path, n, from, to, max_delta, cat}]
@@ -44,6 +47,7 @@
     $browseCount   = document.getElementById("re-browse-count");
     $browseList    = document.getElementById("re-browse-list");
 
+    bindRepoSwitch();
     loadIndex();
     bindSearch();
     bindBrowse();
@@ -57,8 +61,33 @@
   /* ══════════════════════════════════════════════════════════════
      DATA LOADING
   ══════════════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════════════════
+     REPO SWITCHER
+  ══════════════════════════════════════════════════════════════ */
+  function bindRepoSwitch() {
+    document.querySelectorAll(".re-repo-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (btn.dataset.repo === activeRepo) return;
+        activeRepo = btn.dataset.repo;
+        document.querySelectorAll(".re-repo-btn").forEach(b =>
+          b.classList.toggle("active", b.dataset.repo === activeRepo));
+        // reset all state for the new repo
+        searchIndex = [];
+        currentRule = null;
+        selA = null; selB = null;
+        $input.value = "";
+        closeDropdown();
+        show($rulePanel,  false);
+        show($diffPanel,  false);
+        show($browsePanel, false);
+        $browseToggle.textContent = "Browse ▾";
+        loadIndex();
+      });
+    });
+  }
+
   function loadIndex() {
-    fetch(DATA_BASE + "index.json")
+    fetch(dataBase() + "index.json")
       .then(r => r.json())
       .then(data => {
         searchIndex = data;
@@ -81,7 +110,7 @@
   function loadRule(id) {
     show($rulePanel, false);
     show($diffPanel, false);
-    fetch(DATA_BASE + id + ".json")
+    fetch(dataBase() + id + ".json")
       .then(r => r.json())
       .then(data => {
         currentRule = data;
