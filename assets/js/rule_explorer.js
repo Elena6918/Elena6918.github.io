@@ -454,12 +454,16 @@
     const xMatch = repr.match(/^\('X',\s*([^)]+)\)$/);
     if (xMatch) return xMatch[1].trim();
 
-    // ('L', (...)) — list: collect all 'S' values
+    // ('L', (...)) — list: collect all 'S' values, skip single-char type tags (S/L/X/D/N)
     if (repr.startsWith("('L',")) {
       const strings = [];
       const re = /'((?:[^'\\]|\\.)*)'/g;
       let m;
-      while ((m = re.exec(repr)) !== null) strings.push(m[1]);
+      while ((m = re.exec(repr)) !== null) {
+        const s = m[1];
+        if (s.length === 1 && s >= "A" && s <= "Z") continue; // skip type tags
+        strings.push(s.replace(/\\\\n/g, "↵").replace(/\\\\/g, "\\"));
+      }
       if (strings.length) {
         const preview = strings.slice(0, 4).join(", ");
         return strings.length > 4 ? preview + ` … (+${strings.length - 4})` : preview;
@@ -777,7 +781,6 @@
       </div>` : ""}
       <div class="re-diff-tabs mt-2">
         <button class="re-tab${activeTab === "detection" ? " active" : ""}" data-tab="detection">Detection Logic</button>
-        <button class="re-tab${activeTab === "spl" ? " active" : ""}" data-tab="spl">SPL</button>
         <button class="re-tab${activeTab === "pred" ? " active" : ""}" data-tab="pred">Predicate Graph</button>
       </div>`;
 
@@ -796,10 +799,9 @@
       return;
     }
 
-    const isDetection = activeTab === "detection";
-    const textA = isDetection ? (vA.detection || "") : (vA.spl || "");
-    const textB = isDetection ? (vB.detection || "") : (vB.spl || "");
-    const fname = isDetection ? "detection_block.yaml" : "query.spl";
+    const textA = vA.detection || "";
+    const textB = vB.detection || "";
+    const fname = activeRepo === "sigma" ? "detection_block.yaml" : "query.spl";
 
     /* build unified diff with jsdiff, render with diff2html */
     const patch = Diff.createPatch(fname, textA, textB,
@@ -809,7 +811,39 @@
       drawFileList: false,
       matching: "lines",
       outputFormat: "side-by-side",
-    });
+    }) + (activeRepo === "ssc" ? renderMacroPanel(vB) : "");
+  }
+
+  /* ── Macro panel (SSC only) ────────────────────────────────── */
+
+  /* Walk backwards from vi to find the most recent stored macros object. */
+  function getMacrosForVersion(vi) {
+    const versions = currentRule.versions;
+    const idx = versions.findIndex(v => v.vi === vi);
+    for (let i = idx; i >= 0; i--) {
+      if (versions[i].macros) return versions[i].macros;
+    }
+    return null;
+  }
+
+  /* Render a collapsible macro definitions panel below the detection diff. */
+  function renderMacroPanel(vB) {
+    const macros = getMacrosForVersion(vB.vi);
+    if (!macros || Object.keys(macros).length === 0) return "";
+    const rows = Object.entries(macros).map(([name, def]) =>
+      `<tr>` +
+        `<td class="re-macro-name"><code>\`${esc(name)}\`</code></td>` +
+        `<td class="re-macro-def"><code>${esc(def)}</code></td>` +
+      `</tr>`
+    ).join("");
+    return (
+      `<details class="re-macro-panel">` +
+        `<summary class="re-macro-summary">` +
+          `Macros used in v${vB.vi} (${Object.keys(macros).length})` +
+        `</summary>` +
+        `<table class="re-macro-table"><tbody>${rows}</tbody></table>` +
+      `</details>`
+    );
   }
 
   /* ══════════════════════════════════════════════════════════════

@@ -315,6 +315,35 @@ html[data-theme="dark"], .dark-mode {
 
 /* utility */
 .hidden { display: none !important; }
+
+/* ── Macro panel (SSC Detection Logic tab) ── */
+.re-macro-panel {
+  margin-top: .75rem; border: 1px solid var(--re-border);
+  border-radius: 6px; overflow: hidden;
+}
+.re-macro-summary {
+  display: block; padding: .35rem .75rem; cursor: pointer;
+  font-size: .78rem; font-weight: 600; color: var(--re-label-color);
+  user-select: none;
+}
+.re-macro-summary:hover { background: var(--re-hover-bg); }
+.re-macro-table {
+  width: 100%; border-collapse: collapse; font-size: .75rem;
+}
+.re-macro-table td {
+  padding: .3rem .6rem; vertical-align: top;
+  border-top: 1px solid var(--re-border);
+}
+.re-macro-name {
+  width: 22%; white-space: nowrap; color: var(--re-label-color);
+}
+.re-macro-name code {
+  font-size: .73rem; background: none; padding: 0;
+}
+.re-macro-def code {
+  font-size: .73rem; background: none; padding: 0;
+  word-break: break-word; white-space: pre-wrap;
+}
 </style>
 
 <div id="rule-explorer">
