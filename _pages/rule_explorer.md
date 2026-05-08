@@ -199,10 +199,17 @@ html[data-theme="dark"], .dark-mode {
 .re-diff-arrow { color: var(--re-label-color); }
 .re-diff-subjects { color: var(--re-label-color); }
 
-/* tabs */
-.re-tabs {
-  display: flex; border-bottom: 1px solid var(--re-border);
-  padding: 0 1rem;
+/* diff2html overrides */
+#re-diff-content { overflow-x: auto; }
+#re-diff-content .d2h-wrapper { margin: 0; }
+#re-diff-content .d2h-file-header { display: none; }
+#re-diff-content .d2h-code-side-linenumber { min-width: 2rem; }
+#re-diff-content .d2h-file-diff { border-radius: 0; border: none; }
+
+/* ── tabs (now injected dynamically; style here) ── */
+.re-diff-tabs {
+  display: flex; border-top: 1px solid var(--re-border);
+  margin: .5rem -1rem -.7rem; padding: 0 1rem 0;
 }
 .re-tab {
   padding: .45rem .9rem; background: none; border: none;
@@ -212,13 +219,91 @@ html[data-theme="dark"], .dark-mode {
 }
 .re-tab:hover { color: inherit; }
 .re-tab.active { border-bottom-color: var(--re-dot-a); color: var(--re-dot-a); font-weight: 600; }
+.re-tab-dim { opacity: .5; }
 
-/* diff2html overrides */
-#re-diff-content { overflow-x: auto; }
-#re-diff-content .d2h-wrapper { margin: 0; }
-#re-diff-content .d2h-file-header { display: none; }
-#re-diff-content .d2h-code-side-linenumber { min-width: 2rem; }
-#re-diff-content .d2h-file-diff { border-radius: 0; border: none; }
+/* ── predicate graph diff ── */
+.re-pred-unavail {
+  padding: 1.5rem 1.2rem; color: var(--re-label-color);
+  font-size: .88rem; font-style: italic;
+}
+.re-pred-unavail-why { margin-left: .4rem; opacity: .7; }
+.re-pred-summary {
+  padding: .5rem 1rem; font-size: .78rem;
+  border-bottom: 1px solid var(--re-border);
+  display: flex; gap: .8rem; flex-wrap: wrap; align-items: center;
+}
+.re-pred-sum-mod { color: #ffa94d; font-weight: 600; }
+.re-pred-sum-del { color: #ff6b6b; font-weight: 600; }
+.re-pred-sum-ins { color: #51cf66; font-weight: 600; }
+.re-pred-sum-nc  { color: var(--re-label-color); }
+.re-pred-method-badge {
+  margin-left: auto; font-size: .72rem; padding: .15em .5em;
+  border-radius: 3px; font-weight: 500;
+}
+.re-pred-method-precise { background: rgba(59,130,246,.1);  color: var(--re-dot-a); }
+.re-pred-method-approx  { background: rgba(255,193,7,.12);  color: #d97706; }
+
+/* side-by-side layout */
+.re-pred-side-by-side {
+  display: flex; min-height: 4rem; font-family: ui-monospace, "SFMono-Regular", monospace;
+}
+.re-pred-side { flex: 1; min-width: 0; overflow: auto; }
+.re-pred-side + .re-pred-side { border-left: 1px solid var(--re-border); }
+.re-pred-side-header {
+  display: flex; align-items: baseline; gap: .5rem;
+  padding: .35rem .8rem; border-bottom: 1px solid var(--re-border);
+  background: var(--re-hover-bg); position: sticky; top: 0; z-index: 1;
+}
+.re-pred-side-header-a .re-pred-ver-label { color: var(--re-dot-a); }
+.re-pred-side-header-b .re-pred-ver-label { color: var(--re-dot-b); }
+.re-pred-ver-label { font-size: .78rem; font-weight: 700; }
+.re-pred-side-date { font-size: .72rem; color: var(--re-label-color); }
+
+/* tree wrapper */
+.re-pred-tree-wrap { padding: .5rem 0 .75rem; font-size: .8rem; }
+
+/* operator nodes */
+.re-tree-op { padding: .15rem 0 .15rem .8rem; }
+.re-tree-op-kw {
+  display: inline-block; font-size: .7rem; font-weight: 800;
+  letter-spacing: .06em; padding: .1em .4em; border-radius: 3px; margin-bottom: .15rem;
+  background: rgba(148,163,184,.15); color: var(--re-label-color);
+}
+.re-tree-not > .re-tree-op-kw { background: rgba(255,107,107,.12); color: #ff6b6b; }
+.re-tree-children {
+  padding-left: 1.1rem;
+  border-left: 1.5px solid var(--re-border);
+  margin-left: .3rem;
+}
+.re-tree-children:empty { display: none; }
+
+/* leaf nodes */
+.re-tree-leaf {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: .3rem;
+  padding: .25rem .6rem; margin: .1rem 0; border-radius: 4px;
+  border-left: 3px solid transparent; cursor: default;
+}
+.re-tree-unchanged     { opacity: .55; border-left-color: transparent; }
+.re-tree-unchanged:hover { opacity: 1; }
+.re-tree-deleted       { background: rgba(255,107,107,.10); border-left-color: #ff6b6b; }
+.re-tree-inserted      { background: rgba(81,207,102,.10);  border-left-color: #51cf66; }
+.re-tree-changed-before{ background: rgba(255,169,77,.10);  border-left-color: #ffa94d; }
+.re-tree-changed-after { background: rgba(255,169,77,.10);  border-left-color: #51cf66; }
+
+/* predicate parts (shared with tree leaves) */
+.re-pred-ctx {
+  font-size: .68rem; font-weight: 700; padding: .05em .3em;
+  border-radius: 3px; flex-shrink: 0;
+}
+.re-pred-neg   { background: rgba(255,107,107,.15); color: #ff6b6b; }
+.re-pred-field { color: #74c0fc; font-weight: 600; word-break: break-all; }
+.re-pred-op    { color: var(--re-label-color); font-size: .75rem; flex-shrink: 0; }
+.re-pred-val   { color: inherit; word-break: break-all; flex: 1; }
+
+/* highlight the specific changed component */
+.re-pred-hl-field { background: rgba(116,192,252,.25); border-radius: 2px; padding: 0 .15em; }
+.re-pred-hl-op    { background: rgba(255,169,77,.3);   border-radius: 2px; padding: 0 .15em; color: #ffa94d; }
+.re-pred-hl-value { background: rgba(255,107,107,.22); border-radius: 2px; padding: 0 .15em; }
 
 /* legend */
 .re-legend {
@@ -303,10 +388,7 @@ html[data-theme="dark"], .dark-mode {
   <div id="re-diff-panel" class="hidden">
     <div class="re-diff-header-bar">
       <div id="re-diff-header"></div>
-    </div>
-    <div class="re-tabs">
-      <button class="re-tab active" data-tab="detection">Detection Logic (YAML)</button>
-      <button class="re-tab" data-tab="spl">SPL</button>
+      <!-- tabs injected here dynamically by renderDiff() -->
     </div>
     <div id="re-diff-content"></div>
   </div>

@@ -215,12 +215,22 @@
   ══════════════════════════════════════════════════════════════ */
   const TL = { padL: 40, padR: 40, padTop: 50, padBot: 40, r: 8, minGap: 18 };
 
-  /* map delta (0–1) to a dot color: gray → blue → amber → red */
+  /* map raw d_step (alignment cost, unbounded) to a dot color.
+     Thresholds calibrated from sigma distribution:
+       p25≈0.8  p50≈2.0  p75≈7.0 among non-noop steps.
+     d_step=0 covers both true noops and pre-PGIR versions. */
   function deltaColor(delta) {
-    if (delta <= 0)    return "#adb5bd";          // gray  — no change
-    if (delta < 0.08)  return "#74c0fc";          // light blue — minor
-    if (delta < 0.25)  return "#ffa94d";          // amber — moderate
-    return "#ff6b6b";                              // red   — major
+    if (delta <= 0)   return "#adb5bd";   // gray  — no change / no PGIR
+    if (delta < 1.0)  return "#74c0fc";   // blue  — minor  (single predicate tweak)
+    if (delta < 5.0)  return "#ffa94d";   // amber — moderate
+    return "#ff6b6b";                     // red   — major
+  }
+
+  function deltaLabel(delta) {
+    if (delta <= 0)   return "no change";
+    if (delta < 1.0)  return "minor change";
+    if (delta < 5.0)  return "moderate change";
+    return "major change";
   }
 
   function drawTimeline() {
@@ -353,13 +363,9 @@
 
   /* ── tooltip ────────────────────────────────────────────────── */
   function showTooltip(e, v, i) {
-    const deltaLabel = v.delta <= 0    ? "no change"
-                     : v.delta < 0.08 ? "minor change"
-                     : v.delta < 0.25 ? "moderate change"
-                     :                  "major change";
     const dotColor = deltaColor(v.delta ?? 0);
     const deltaHtml = i === 0 ? "" :
-      `<br><span style="color:${dotColor};font-weight:600">● ${deltaLabel}</span>`;
+      `<br><span style="color:${dotColor};font-weight:600">● ${deltaLabel(v.delta ?? 0)}</span>`;
     $tooltip.innerHTML =
       `<strong>v${v.vi}</strong> &nbsp;<span class="re-tt-date">${v.date.slice(0,10)}</span>` +
       deltaHtml +
@@ -402,6 +408,344 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     PREDICATE LABEL PARSING
+  ══════════════════════════════════════════════════════════════ */
+
+  /* Parse a canonical predicate label into display parts.
+     Label format: P:<field>|<op>|<norm_value_repr>|CTX:POS/NEG
+     norm_value_repr is Python repr, e.g.:
+       ('S', 'value')              → string
+       ('X', 42)                   → other literal
+       ('L', (('S', 'a'), ...))    → list of values
+       ('D', (...))                → complex (dict-like)
+  */
+  function parsePredLabel(label) {
+    if (!label.startsWith("P:")) return { field: label, op: "", val: "", ctx: "" };
+
+    const body = label.slice(2);
+    const p1 = body.indexOf("|");
+    if (p1 < 0) return { field: body, op: "", val: "", ctx: "" };
+
+    const field = body.slice(0, p1);
+    const rest1 = body.slice(p1 + 1);
+    const p2 = rest1.indexOf("|");
+    if (p2 < 0) return { field, op: rest1, val: "", ctx: "" };
+
+    const op = rest1.slice(0, p2);
+    let remainder = rest1.slice(p2 + 1);
+
+    // strip CTX suffix
+    let ctx = "";
+    if (remainder.endsWith("|CTX:POS")) { ctx = "POS"; remainder = remainder.slice(0, -8); }
+    else if (remainder.endsWith("|CTX:NEG")) { ctx = "NEG"; remainder = remainder.slice(0, -8); }
+
+    const val = reprToDisplay(remainder);
+    return { field, op: opDisplay(op), val, ctx };
+  }
+
+  /* Convert Python repr value tuple to a human-readable string. */
+  function reprToDisplay(repr) {
+    repr = repr.trim();
+    // ('S', 'value')
+    const sMatch = repr.match(/^\('S',\s*'(.*)'\)$/s);
+    if (sMatch) return sMatch[1].replace(/\\\\n/g, "↵").replace(/\\\\/g, "\\");
+
+    // ('X', value) — numeric or other literal
+    const xMatch = repr.match(/^\('X',\s*([^)]+)\)$/);
+    if (xMatch) return xMatch[1].trim();
+
+    // ('L', (...)) — list: collect all 'S' values
+    if (repr.startsWith("('L',")) {
+      const strings = [];
+      const re = /'((?:[^'\\]|\\.)*)'/g;
+      let m;
+      while ((m = re.exec(repr)) !== null) strings.push(m[1]);
+      if (strings.length) {
+        const preview = strings.slice(0, 4).join(", ");
+        return strings.length > 4 ? preview + ` … (+${strings.length - 4})` : preview;
+      }
+    }
+
+    // ('D', ...) or anything else — strip outer wrapper
+    const dMatch = repr.match(/^\('D',\s*(.*)\)$/s);
+    if (dMatch) return "[complex]";
+
+    return repr;
+  }
+
+  /* Map canonical op names to display-friendly short form. */
+  function opDisplay(op) {
+    const MAP = {
+      EQ: "=", NEQ: "≠",
+      CONTAINS: "contains", NOT_CONTAINS: "not contains",
+      STARTSWITH: "starts with", ENDSWITH: "ends with",
+      MATCHES_REGEX: "~regex", NOT_MATCHES_REGEX: "!~regex",
+      IN: "in", NOT_IN: "not in",
+      GT: ">", GE: "≥", LT: "<", LE: "≤",
+    };
+    return MAP[op] || op;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     TREE UTILITIES
+  ══════════════════════════════════════════════════════════════ */
+
+  /* Walk backwards from version index `vi` to find the most
+     recently stored (non-null) tree in the rule. */
+  function getTreeForVersion(rule, vi) {
+    const versions = rule.versions;
+    const idx = versions.findIndex(v => v.vi === vi);
+    for (let i = idx; i >= 0; i--) {
+      if (versions[i].tree) return versions[i].tree;
+    }
+    return null;
+  }
+
+  /* Collect all predicate labels reachable from a tree node.
+     Returns a Map<label, node_ref> so we can look up labels quickly. */
+  function collectPredLabels(node) {
+    const out = new Map();  // label → true
+    function walk(n) {
+      if (!n) return;
+      if (n.t.startsWith("P:")) { out.set(n.t, true); return; }
+      (n.c || []).forEach(walk);
+    }
+    walk(node);
+    return out;
+  }
+
+  /* Extract field|op key from a predicate label (strips value + CTX).
+     Used to match "same predicate, different value" for non-adjacent diffs. */
+  function predFieldOpKey(label) {
+    // label = P:field|op|val|CTX:x  — want "field|op"
+    const body = label.startsWith("P:") ? label.slice(2) : label;
+    const parts = body.split("|");
+    return parts[0] + "|" + (parts[1] || "");
+  }
+
+  /* ── Annotation maps ─────────────────────────────────────────
+     An annotation map is: Map<label, {status, diffs?}>
+     status: "unchanged" | "deleted" | "inserted" | "changed-before" | "changed-after"
+     diffs:  ["field"|"op"|"value"] (for changed pairs, which component changed)
+  ─────────────────────────────────────────────────────────────── */
+
+  /* Build annotation maps from stored precise adjacent-step alignment. */
+  function buildAnnotationAdjacent(align) {
+    const forA = new Map();  // labels of vA's predicates
+    const forB = new Map();  // labels of vB's predicates
+
+    (align.matched || []).forEach(lbl => {
+      forA.set(lbl, { status: "unchanged" });
+      forB.set(lbl, { status: "unchanged" });
+    });
+    (align.changed || []).forEach(({ a, b, diffs }) => {
+      forA.set(a, { status: "changed-before", diffs });
+      forB.set(b, { status: "changed-after",  diffs });
+    });
+    (align.deleted  || []).forEach(lbl => forA.set(lbl, { status: "deleted" }));
+    (align.inserted || []).forEach(lbl => forB.set(lbl, { status: "inserted" }));
+
+    return { forA, forB };
+  }
+
+  /* Build annotation maps via JS label-matching (non-adjacent pairs).
+     Less precise than the Python aligner: detects same-field/op as "changed"
+     instead of insert+delete, but accurately shows the full vA→vB span. */
+  function buildAnnotationNonAdjacent(treeA, treeB) {
+    const labelsA = collectPredLabels(treeA);  // Map<label, true>
+    const labelsB = collectPredLabels(treeB);
+
+    // Build field|op → label maps for detecting value-shift pairs
+    const keyToLabelA = new Map();   // "field|op" → label (first seen)
+    const keyToLabelB = new Map();
+    labelsA.forEach((_, lbl) => {
+      const k = predFieldOpKey(lbl);
+      if (!keyToLabelA.has(k)) keyToLabelA.set(k, lbl);
+    });
+    labelsB.forEach((_, lbl) => {
+      const k = predFieldOpKey(lbl);
+      if (!keyToLabelB.has(k)) keyToLabelB.set(k, lbl);
+    });
+
+    const forA = new Map();
+    const forB = new Map();
+
+    labelsA.forEach((_, lbl) => {
+      if (labelsB.has(lbl)) {
+        forA.set(lbl, { status: "unchanged" });
+      } else {
+        // Check if same field|op exists in B (value/op changed)
+        const key = predFieldOpKey(lbl);
+        const counterpart = keyToLabelB.get(key);
+        if (counterpart && !labelsB.has(lbl)) {
+          forA.set(lbl, { status: "changed-before", diffs: ["value"] });
+        } else {
+          forA.set(lbl, { status: "deleted" });
+        }
+      }
+    });
+
+    labelsB.forEach((_, lbl) => {
+      if (labelsA.has(lbl)) {
+        forB.set(lbl, { status: "unchanged" });
+      } else {
+        const key = predFieldOpKey(lbl);
+        const counterpart = keyToLabelA.get(key);
+        if (counterpart && !labelsA.has(lbl)) {
+          forB.set(lbl, { status: "changed-after", diffs: ["value"] });
+        } else {
+          forB.set(lbl, { status: "inserted" });
+        }
+      }
+    });
+
+    return { forA, forB };
+  }
+
+  /* ── Tree renderer ───────────────────────────────────────────
+     Renders a single tree side (vA or vB) as annotated HTML.
+     annotMap: Map<label, {status, diffs?}>
+     unknownStatus: status to use for nodes not in the map ("unchanged")
+  ─────────────────────────────────────────────────────────────── */
+
+  const OP_DISPLAY = { "O:AND": "AND", "O:OR": "OR", "O:NOT": "NOT" };
+
+  function renderTreeAnnotated(node, annotMap, depth) {
+    if (!node) return "";
+    depth = depth || 0;
+
+    // Predicate leaf
+    if (node.t.startsWith("P:")) {
+      const ann    = annotMap.get(node.t) || { status: "unchanged" };
+      const diffs  = ann.diffs || [];
+      const { field, op, val, ctx } = parsePredLabel(node.t);
+
+      const statusClass = {
+        "unchanged":      "re-tree-unchanged",
+        "deleted":        "re-tree-deleted",
+        "inserted":       "re-tree-inserted",
+        "changed-before": "re-tree-changed-before",
+        "changed-after":  "re-tree-changed-after",
+      }[ann.status] || "re-tree-unchanged";
+
+      const ctxBadge = ctx === "NEG"
+        ? `<span class="re-pred-ctx re-pred-neg">NOT</span>` : "";
+
+      const fieldHtml = diffs.includes("field")
+        ? `<span class="re-pred-field re-pred-hl-field">${esc(field)}</span>`
+        : `<span class="re-pred-field">${esc(field)}</span>`;
+      const opHtml = diffs.includes("op")
+        ? `<span class="re-pred-op re-pred-hl-op">${esc(op)}</span>`
+        : `<span class="re-pred-op">${esc(op)}</span>`;
+      const valHtml = diffs.includes("value")
+        ? `<span class="re-pred-val re-pred-hl-value">${esc(val)}</span>`
+        : `<span class="re-pred-val">${esc(val)}</span>`;
+
+      return `<div class="re-tree-node re-tree-leaf ${statusClass}">` +
+               ctxBadge + fieldHtml + opHtml + valHtml +
+             `</div>`;
+    }
+
+    // Operator node
+    const opLabel = OP_DISPLAY[node.t] || node.t.replace("O:", "");
+    const children = (node.c || []).map(ch => renderTreeAnnotated(ch, annotMap, depth + 1)).join("");
+
+    // For NOT with a single child, keep the operator inline
+    const opClass = node.t === "O:NOT" ? "re-tree-op re-tree-not" : "re-tree-op";
+
+    return `<div class="${opClass}">` +
+             `<span class="re-tree-op-kw">${opLabel}</span>` +
+             `<div class="re-tree-children">${children}</div>` +
+           `</div>`;
+  }
+
+  /* ── Count annotations in a tree ────────────────────────────── */
+  function countAnnotations(tree, annotMap) {
+    const counts = { changed: 0, deleted: 0, inserted: 0, unchanged: 0 };
+    function walk(n) {
+      if (!n) return;
+      if (n.t.startsWith("P:")) {
+        const st = (annotMap.get(n.t) || { status: "unchanged" }).status;
+        if (st === "changed-before" || st === "changed-after") counts.changed++;
+        else if (st === "deleted")   counts.deleted++;
+        else if (st === "inserted")  counts.inserted++;
+        else                         counts.unchanged++;
+        return;
+      }
+      (n.c || []).forEach(walk);
+    }
+    walk(tree);
+    return counts;
+  }
+
+  /* ── Top-level predicate diff renderer ──────────────────────── */
+  function renderTreeDiff(vA, vB, rule) {
+    const treeA = getTreeForVersion(rule, vA.vi);
+    const treeB = getTreeForVersion(rule, vB.vi);
+
+    if (!treeA && !treeB) {
+      return `<div class="re-pred-unavail">Predicate graph not available for this rule
+        <span class="re-pred-unavail-why">(no PGIR coverage)</span></div>`;
+    }
+    if (!treeA) {
+      return `<div class="re-pred-unavail">Predicate graph not available for v${vA.vi}
+        <span class="re-pred-unavail-why">(no PGIR coverage before this version)</span></div>`;
+    }
+
+    const vIdxA = rule.versions.findIndex(v => v.vi === vA.vi);
+    const vIdxB = rule.versions.findIndex(v => v.vi === vB.vi);
+    const isAdjacent = (vIdxB - vIdxA) === 1;
+
+    // Build annotation maps
+    let forA, forB, methodBadge;
+    if (isAdjacent && vB.align && vB.align.matched !== undefined) {
+      ({ forA, forB } = buildAnnotationAdjacent(vB.align));
+      methodBadge = `<span class="re-pred-method-badge re-pred-method-precise">precise alignment</span>`;
+    } else {
+      ({ forA, forB } = buildAnnotationNonAdjacent(treeA, treeB || treeA));
+      const steps = vIdxB - vIdxA;
+      methodBadge = `<span class="re-pred-method-badge re-pred-method-approx">label-match · ${steps} step${steps !== 1 ? "s" : ""}</span>`;
+    }
+
+    // Summary counts (use forB as canonical: inserted/changed-after/unchanged live there)
+    const countsA = countAnnotations(treeA, forA);
+    const countsB = treeB ? countAnnotations(treeB, forB) : countsA;
+    const nChanged  = countsA.changed;   // before side
+    const nDeleted  = countsA.deleted;
+    const nInserted = countsB.inserted;
+    const nUnchanged= countsA.unchanged;
+
+    const summaryParts = [];
+    if (nChanged)   summaryParts.push(`<span class="re-pred-sum-mod">⬩ ${nChanged} modified</span>`);
+    if (nDeleted)   summaryParts.push(`<span class="re-pred-sum-del">− ${nDeleted} deleted</span>`);
+    if (nInserted)  summaryParts.push(`<span class="re-pred-sum-ins">+ ${nInserted} inserted</span>`);
+    if (nUnchanged) summaryParts.push(`<span class="re-pred-sum-nc">= ${nUnchanged} unchanged</span>`);
+
+    const treeAHtml = renderTreeAnnotated(treeA, forA, 0);
+    const treeBHtml = treeB ? renderTreeAnnotated(treeB, forB, 0) : treeAHtml;
+
+    return (
+      `<div class="re-pred-summary">${summaryParts.join("  ")} ${methodBadge}</div>` +
+      `<div class="re-pred-side-by-side">` +
+        `<div class="re-pred-side re-pred-side-a">` +
+          `<div class="re-pred-side-header re-pred-side-header-a">` +
+            `<span class="re-pred-ver-label re-pred-ver-a">v${vA.vi}</span>` +
+            `<span class="re-pred-side-date">${vA.date.slice(0,10)}</span>` +
+          `</div>` +
+          `<div class="re-pred-tree-wrap">${treeAHtml}</div>` +
+        `</div>` +
+        `<div class="re-pred-side re-pred-side-b">` +
+          `<div class="re-pred-side-header re-pred-side-header-b">` +
+            `<span class="re-pred-ver-label re-pred-ver-b">v${vB.vi}</span>` +
+            `<span class="re-pred-side-date">${vB.date.slice(0,10)}</span>` +
+          `</div>` +
+          `<div class="re-pred-tree-wrap">${treeBHtml}</div>` +
+        `</div>` +
+      `</div>`
+    );
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      DIFF RENDERING
   ══════════════════════════════════════════════════════════════ */
   let activeTab = "detection";
@@ -421,6 +765,7 @@
     const vB = currentRule.versions.find(v => v.vi === selB);
     if (!vA || !vB) return;
 
+    // Predicate Diff tab is always available (falls back gracefully when no PGIR)
     $diffHeader.innerHTML =
       `<div class="re-diff-versions">
         <span class="re-diff-ver re-diff-ver-a">v${vA.vi} &nbsp;<span class="text-muted">${vA.date.slice(0,10)}</span></span>
@@ -429,7 +774,12 @@
       </div>
       ${vA.subject || vB.subject ? `<div class="re-diff-subjects small text-muted mt-1">
         <span>${esc(vA.subject || "")}</span><span class="mx-2">→</span><span>${esc(vB.subject || "")}</span>
-      </div>` : ""}`;
+      </div>` : ""}
+      <div class="re-diff-tabs mt-2">
+        <button class="re-tab${activeTab === "detection" ? " active" : ""}" data-tab="detection">Detection Logic</button>
+        <button class="re-tab${activeTab === "spl" ? " active" : ""}" data-tab="spl">SPL</button>
+        <button class="re-tab${activeTab === "pred" ? " active" : ""}" data-tab="pred">Predicate Graph</button>
+      </div>`;
 
     renderDiffContent();
     show($diffPanel, true);
@@ -440,6 +790,12 @@
     if (!selA || !selB) return;
     const vA = currentRule.versions.find(v => v.vi === selA);
     const vB = currentRule.versions.find(v => v.vi === selB);
+
+    if (activeTab === "pred") {
+      $diffContent.innerHTML = renderTreeDiff(vA, vB, currentRule);
+      return;
+    }
+
     const isDetection = activeTab === "detection";
     const textA = isDetection ? (vA.detection || "") : (vA.spl || "");
     const textB = isDetection ? (vB.detection || "") : (vB.spl || "");
@@ -490,9 +846,10 @@
     return searchIndex.filter(r => {
       if (cat && r.cat !== cat) return false;
       if (r.n < minV) return false;
-      if (change === "minor"    && r.max_delta < 0.01)  return false;
-      if (change === "moderate" && r.max_delta < 0.08)  return false;
-      if (change === "major"    && r.max_delta < 0.25)  return false;
+      // raw d_step thresholds (same scale as deltaColor)
+      if (change === "minor"    && r.max_delta < 0.2)   return false;
+      if (change === "moderate" && r.max_delta < 1.0)   return false;
+      if (change === "major"    && r.max_delta < 5.0)   return false;
       if (fromYear && parseInt(r.to) < fromYear)        return false;
       return true;
     });
@@ -534,9 +891,9 @@
   }
 
   function changeBadge(max_delta) {
-    if (max_delta >= 0.25) return `<span class="re-cbadge" style="color:#ff6b6b">● major</span>`;
-    if (max_delta >= 0.08) return `<span class="re-cbadge" style="color:#ffa94d">● moderate</span>`;
-    if (max_delta >= 0.01) return `<span class="re-cbadge" style="color:#74c0fc">● minor</span>`;
+    if (max_delta >= 5.0) return `<span class="re-cbadge" style="color:#ff6b6b">● major</span>`;
+    if (max_delta >= 1.0) return `<span class="re-cbadge" style="color:#ffa94d">● moderate</span>`;
+    if (max_delta >= 0.2) return `<span class="re-cbadge" style="color:#74c0fc">● minor</span>`;
     return `<span class="re-cbadge" style="color:#adb5bd">● no change</span>`;
   }
 
