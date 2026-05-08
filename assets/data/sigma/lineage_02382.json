@@ -1,0 +1,1 @@
+{"lineage_id":"lineage_02382","display_name":"dns_query_win_ammyy","rule_canonical":"rules/windows/dns_query/dns_query_win_ammyy.yml","versions":[{"vi":1,"date":"2022-04-04T08:57:23Z","hash":"aaafef29","subject":"Redcannary","detection":"selection:\n    QueryName|endswith: '.ammyy.com'\ncondition: selection","spl":"QueryName=\"*.ammyy.com\"","delta":0.0}]}

@@ -1,0 +1,1 @@
+{"lineage_id":"lineage_03453","display_name":"sysmon_susp_mshta","rule_canonical":"rules/windows/sysmon/sysmon_susp_mshta.yml","versions":[{"vi":1,"date":"2017-04-12T23:08:37Z","hash":"c2ed7bd9","subject":"MSHTA Rule v1","detection":"selection:\n    EventID: 1\n    ParentImage: '*\\mshta.exe'\ncondition: selection","spl":"EventID=1 ParentImage=\"*\\\\mshta.exe\"","delta":0.0}]}

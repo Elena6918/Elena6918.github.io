@@ -1,0 +1,1 @@
+{"lineage_id":"lineage_04568","display_name":"win_user_acc_created_deleted","rule_canonical":"rules/windows/builtin/win_user_acc_created_deleted.yml","versions":[{"vi":1,"date":"2021-08-15T14:00:14Z","hash":"a75859a9","subject":"First commit","detection":"selection:\n    EventID: 4720\ncondition: selection  ","spl":"EventID=4720","delta":0.0}]}

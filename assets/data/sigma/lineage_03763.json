@@ -1,0 +1,1 @@
+{"lineage_id":"lineage_03763","display_name":"collection_repeat","rule_canonical":"tests/collection_repeat.yml","versions":[{"vi":1,"date":"2017-11-01T20:14:11Z","hash":"e90ff2d9","subject":"Improved testing","detection":"selection:\n    EventID: 1\n    CommandLine: cmd.exe\ncondition: selection\nselection:\n    EventID: 4688","spl":"EventID=4688","delta":0.0}]}
