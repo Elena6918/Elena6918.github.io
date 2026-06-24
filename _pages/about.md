@@ -19,17 +19,17 @@ selected_papers: true # includes a list of papers marked as "selected={true}"
 social: true  # includes social icons at the bottom of the page
 ---
 
-I am a fourth-year PhD candidate in Computer Science at the University of Virginia, advised by
+I am a PhD candidate in Computer Science at the University of Virginia, advised by
 <a href="https://www.cs.virginia.edu/~evans/">Professor David Evans</a> in the
 <a href="https://uvasrg.github.io/">Security Research Group</a>.
-My research focuses on **systematic evaluation and empirical analysis of security- and privacy-critical systems**, with an emphasis on understanding when claimed guarantees break down in real-world settings.
+I am a systems-security researcher interested in how security policies and trust boundaries are represented, evaluated, maintained, and enforced in evolving systems.
 
-Across my work, I have been consistently interested in the gap between **what systems are designed or claimed to do** and **how they actually behave in practice**. Early in my research, this led me to large-scale empirical studies of online platforms and web privacy protocols, where formal guarantees often rely on assumptions that are difficult to validate after deployment. Later, while studying audio-visual deepfake detection, I became increasingly aware that strong benchmark performance does not necessarily imply that a model has learned the semantic properties we expect, which further shaped my focus on evaluation methodology and failure analysis.
+My research has examined browser privacy mechanisms, the evolution of operational detection rules, and the gap between intended security guarantees and real system behavior. In recent work, I study how detection logic changes over time in public security repositories, using semantic representations to distinguish meaningful policy changes from superficial rule edits.
 
-More recently, my work has centered on the evolution of host-based intrusion detection system, where security knowledge itself changes over time in response to adversaries, data drift, and engineering constraints. Through this lens, I study how detection rules are authored, modified, and revised in practice, and what these changes reveal about detection effectiveness, evaluation blind spots, and long-term maintainability.
+I am currently developing research on runtime policy enforcement for AI agents acting on users’ behalf, with a focus on delegated authority, cross-boundary actions, and irreversible effects. Across these areas, I aim to turn ambiguous security concerns into concrete system artifacts, measurable properties, and enforceable controls.
 
 
-I am **actively seeking research internships** and **full-time roles** where I can apply empirical evaluation and security analysis to real systems and datasets, working closely with engineering and threat assessment teams to surface actionable insights. I am particularly interested in industrial research roles that emphasize security effectiveness, detection efficacy, trustworthy system evaluation, and empirical analysis of complex deployed systems.
+I am seeking **research and engineering roles** in systems security, AI security, detection engineering, security measurement, and security tooling.
 
 
 My Chinese name is written as 龙玟君, and I go by Elena in my daily life. I drew my self-portrait on the right with <a href='https://procreate.com/'>Procreate</a>, celebrating the Year of the Horse (2026).  
