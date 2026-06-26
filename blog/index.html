@@ -37,10 +37,20 @@ pagination:
 
   <ul class="post-list">
     {% for post in paginator.posts %}
-    {% if post.external_source == blank %}
-      {% assign read_time = post.content | number_of_words | divided_by: 180 | plus: 1 %}
-    {% else %}
+    {% assign read_time = 1 %}
+    {% if post.read_time != blank %}
+      {% assign read_time = post.read_time %}
+    {% elsif post.external_source != blank %}
       {% assign read_time = post.feed_content | strip_html | number_of_words | divided_by: 180 | plus: 1 %}
+    {% else %}
+      {% assign content_words = post.content | strip_html | number_of_words %}
+      {% if content_words == 0 %}
+        {% assign content_words = post.description | strip_html | number_of_words %}
+      {% endif %}
+      {% if content_words == 0 %}
+        {% assign content_words = post.title | number_of_words %}
+      {% endif %}
+      {% assign read_time = content_words | divided_by: 180 | plus: 1 %}
     {% endif %}
     {% assign year = post.date | date: "%Y" %}
     {% assign tags = post.tags | join: "" %}
