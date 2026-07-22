@@ -32,7 +32,7 @@ I am currently developing research on runtime policy enforcement for AI agents a
 I am seeking **research and engineering roles** in systems security, AI security, detection engineering, security measurement, and security tooling.
 
 
-My Chinese name is written as 龙玟君, and I go by Elena in my daily life. I drew my self-portrait on the right with <a href='https://procreate.com/'>Procreate</a>, celebrating the Year of the Horse (2026).  
+I drew my self-portrait on the right with <a href='https://procreate.com/'>Procreate</a>, celebrating the Year of the Horse (2026).  
 
 <!-- Put your address / P.O. box / other info right below your picture. You can also disable any these elements by editing `profile` property of the YAML header of your `_pages/about.md`. Edit `_bibliography/papers.bib` and Jekyll will render your [publications page](/al-folio/publications/) automatically.
 
