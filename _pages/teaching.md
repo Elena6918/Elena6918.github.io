@@ -10,7 +10,7 @@ nav_order: 5
 <!-- For now, this page is assumed to be a static description of your courses. You can convert it to a collection similar to `_projects/` so that you can have a dedicated page for each course.
 
 Organize your courses by years, topics, or universities, however you like! -->
-Below is a list of courses that I am TAing/TA'ed.
+Below is a list of courses that I TA'ed.
 
 ### Network Privacy
 - **Semester**: Fall 2023, Fall 2024, Spring 2025

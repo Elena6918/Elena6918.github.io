@@ -22,15 +22,13 @@ social: true  # includes social icons at the bottom of the page
 I am a PhD candidate in Computer Science at the University of Virginia, advised by
 <a href="https://www.cs.virginia.edu/~evans/">Professor David Evans</a> in the
 <a href="https://uvasrg.github.io/">Security Research Group</a>.
-I am a systems-security researcher interested in how security policies and trust boundaries are represented, evaluated, maintained, and enforced in evolving systems.
+I work on systems security, focusing on how security policies and trust boundaries are represented, enforced, and maintained as systems evolve.
 
 My research has examined browser privacy mechanisms, the evolution of operational detection rules, and the gap between intended security guarantees and real system behavior. In recent work, I study how detection logic changes over time in public security repositories, using semantic representations to distinguish meaningful policy changes from superficial rule edits.
 
-I am currently developing research on runtime policy enforcement for AI agents acting on users’ behalf, with a focus on delegated authority, cross-boundary actions, and irreversible effects. Across these areas, I aim to turn ambiguous security concerns into concrete system artifacts, measurable properties, and enforceable controls.
+I am now building runtime authorization for AI agents acting on users’ behalf, focusing on delegated authority, actions that cross trust boundaries, and irreversible effects. Across these projects, I aim to turn ambiguous security concerns into concrete systems, measurable properties, and enforceable controls.
 
-
-I am seeking **research and engineering roles** in systems security, AI security, detection engineering, security measurement, and security tooling.
-
+I am on the job market for 2027 and seeking research and engineering roles in systems security, AI security, detection engineering, and security tooling.
 
 I drew my self-portrait on the right with <a href='https://procreate.com/'>Procreate</a>, celebrating the Year of the Horse (2026).  
 

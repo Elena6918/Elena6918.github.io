@@ -4,7 +4,7 @@ title: Detection Rule Explorer
 permalink: /rule-explorer/
 description: >
   Detection rules are executable security knowledge: analysts continually revise them as adversaries, telemetry, and operational constraints change. This interactive explorer lets users inspect the revision histories of public Sigma and Splunk Security Content rules, compare changes in detection logic rather than surface syntax, and trace how rules expand coverage, reduce false positives, or revisit earlier decisions. 
-  The explorer accompanies our longitudinal study of 6,859 detection-rule histories. It is designed to make rule maintenance visible as an evolving operational process rather than a sequence of isolated text edits.
+  The explorer accompanies our paper, <a href="/assets/pdf/SP_Rules_2027.pdf">Evolution of Log-Based Detection Rules in Public Repositories</a>, a longitudinal study of 6,859 detection-rule histories. It is designed to make rule maintenance visible as an evolving operational process rather than a sequence of isolated text edits.
 nav: false
 ---
 
