@@ -208,6 +208,16 @@ html[data-theme="dark"], .dark-mode {
 #re-diff-content .d2h-code-side-linenumber { min-width: 2rem; }
 #re-diff-content .d2h-file-diff { border-radius: 0; border: none; }
 
+.re-unchanged-notice {
+  padding: .7rem 1rem; color: var(--re-label-color); font-size: .85rem;
+}
+.re-unchanged-code {
+  margin: 0; padding: 1rem; border-top: 1px solid var(--re-border);
+  background: var(--re-card-bg); color: inherit; overflow-x: auto;
+  white-space: pre; font-size: .8rem;
+}
+.re-unchanged-code code { background: none; color: inherit; padding: 0; }
+
 /* ── tabs (now injected dynamically; style here) ── */
 .re-diff-tabs {
   display: flex; border-top: 1px solid var(--re-border);

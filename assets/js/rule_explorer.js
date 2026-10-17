@@ -803,6 +803,16 @@
     const textB = vB.detection || "";
     const fname = activeRepo === "sigma" ? "detection_block.yaml" : "query.spl";
 
+    if (textA === textB) {
+      $diffContent.innerHTML =
+        `<div class="re-unchanged-notice">No changes in detection logic between v${vA.vi} and v${vB.vi}.</div>` +
+        (textA
+          ? `<pre class="re-unchanged-code"><code>${esc(textA)}</code></pre>`
+          : `<div class="re-unchanged-notice">No detection logic content is available.</div>`) +
+        (activeRepo === "ssc" ? renderMacroPanel(vB) : "");
+      return;
+    }
+
     /* build unified diff with jsdiff, render with diff2html */
     const patch = Diff.createPatch(fname, textA, textB,
       `v${vA.vi}  (${vA.date.slice(0,10)})`, `v${vB.vi}  (${vB.date.slice(0,10)})`);
