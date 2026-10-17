@@ -16,6 +16,7 @@ Below is a list of courses that I TA'ed.
 - **Semester**: Fall 2023, Fall 2024, Spring 2025
 - **Institution**: University of Virginia
 - **Course Site**: [CS 4501 Privacy in the Internet Age](https://www.cs.virginia.edu/~ys3kz/courses/fall23/cs4501/)
+- **Guest Lecture**: Gave a guest lecture on browser fingerprinting and online tracking.
 
 ### Cryptography
 - **Semester**: Spring 2023
