@@ -8,6 +8,8 @@ description: >
 nav: false
 ---
 
+<link rel="stylesheet" href="{{ '/assets/css/rule-explorer-predicates.css' | relative_url }}">
+
 <!-- External deps (CDN) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html@3.4.52/bundles/css/diff2html.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
@@ -152,6 +154,17 @@ html[data-theme="dark"], .dark-mode {
   overflow: visible;
 }
 #re-timeline { display: block; width: 100%; overflow: visible; }
+#re-timeline-scroll { overflow-x: auto; }
+.re-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+.re-controls input {
+  width: 5rem; padding: .3rem; border: 1px solid var(--re-border); border-radius: 4px;
+  background: var(--re-card-bg); color: inherit;
+}
+.re-controls label { margin: 0; }
+.re-controls button:disabled { opacity: .4; cursor: default; }
+#re-comparison-error, #re-status { font-size: .85rem; }
+#re-comparison-error { color: var(--global-text-color); }
+#re-zoom-level { min-width: 2rem; text-align: center; }
 #re-tooltip {
   position: absolute; display: none; pointer-events: none;
   background: #1e1e1e !important; color: #f0f0f0 !important;
@@ -233,90 +246,6 @@ html[data-theme="dark"], .dark-mode {
 .re-tab.active { border-bottom-color: var(--re-dot-a); color: var(--re-dot-a); font-weight: 600; }
 .re-tab-dim { opacity: .5; }
 
-/* ── predicate graph diff ── */
-.re-pred-unavail {
-  padding: 1.5rem 1.2rem; color: var(--re-label-color);
-  font-size: .88rem; font-style: italic;
-}
-.re-pred-unavail-why { margin-left: .4rem; opacity: .7; }
-.re-pred-summary {
-  padding: .5rem 1rem; font-size: .78rem;
-  border-bottom: 1px solid var(--re-border);
-  display: flex; gap: .8rem; flex-wrap: wrap; align-items: center;
-}
-.re-pred-sum-mod { color: #ffa94d; font-weight: 600; }
-.re-pred-sum-del { color: #ff6b6b; font-weight: 600; }
-.re-pred-sum-ins { color: #51cf66; font-weight: 600; }
-.re-pred-sum-nc  { color: var(--re-label-color); }
-.re-pred-method-badge {
-  margin-left: auto; font-size: .72rem; padding: .15em .5em;
-  border-radius: 3px; font-weight: 500;
-}
-.re-pred-method-precise { background: rgba(59,130,246,.1);  color: var(--re-dot-a); }
-.re-pred-method-approx  { background: rgba(255,193,7,.12);  color: #d97706; }
-
-/* side-by-side layout */
-.re-pred-side-by-side {
-  display: flex; min-height: 4rem; font-family: ui-monospace, "SFMono-Regular", monospace;
-}
-.re-pred-side { flex: 1; min-width: 0; overflow: auto; }
-.re-pred-side + .re-pred-side { border-left: 1px solid var(--re-border); }
-.re-pred-side-header {
-  display: flex; align-items: baseline; gap: .5rem;
-  padding: .35rem .8rem; border-bottom: 1px solid var(--re-border);
-  background: var(--re-hover-bg); position: sticky; top: 0; z-index: 1;
-}
-.re-pred-side-header-a .re-pred-ver-label { color: var(--re-dot-a); }
-.re-pred-side-header-b .re-pred-ver-label { color: var(--re-dot-b); }
-.re-pred-ver-label { font-size: .78rem; font-weight: 700; }
-.re-pred-side-date { font-size: .72rem; color: var(--re-label-color); }
-
-/* tree wrapper */
-.re-pred-tree-wrap { padding: .5rem 0 .75rem; font-size: .8rem; }
-
-/* operator nodes */
-.re-tree-op { padding: .15rem 0 .15rem .8rem; }
-.re-tree-op-kw {
-  display: inline-block; font-size: .7rem; font-weight: 800;
-  letter-spacing: .06em; padding: .1em .4em; border-radius: 3px; margin-bottom: .15rem;
-  background: rgba(148,163,184,.15); color: var(--re-label-color);
-}
-.re-tree-not > .re-tree-op-kw { background: rgba(255,107,107,.12); color: #ff6b6b; }
-.re-tree-children {
-  padding-left: 1.1rem;
-  border-left: 1.5px solid var(--re-border);
-  margin-left: .3rem;
-}
-.re-tree-children:empty { display: none; }
-
-/* leaf nodes */
-.re-tree-leaf {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: .3rem;
-  padding: .25rem .6rem; margin: .1rem 0; border-radius: 4px;
-  border-left: 3px solid transparent; cursor: default;
-}
-.re-tree-unchanged     { opacity: .55; border-left-color: transparent; }
-.re-tree-unchanged:hover { opacity: 1; }
-.re-tree-deleted       { background: rgba(255,107,107,.10); border-left-color: #ff6b6b; }
-.re-tree-inserted      { background: rgba(81,207,102,.10);  border-left-color: #51cf66; }
-.re-tree-changed-before{ background: rgba(255,169,77,.10);  border-left-color: #ffa94d; }
-.re-tree-changed-after { background: rgba(255,169,77,.10);  border-left-color: #51cf66; }
-
-/* predicate parts (shared with tree leaves) */
-.re-pred-ctx {
-  font-size: .68rem; font-weight: 700; padding: .05em .3em;
-  border-radius: 3px; flex-shrink: 0;
-}
-.re-pred-neg   { background: rgba(255,107,107,.15); color: #ff6b6b; }
-.re-pred-field { color: #74c0fc; font-weight: 600; word-break: break-all; }
-.re-pred-op    { color: var(--re-label-color); font-size: .75rem; flex-shrink: 0; }
-.re-pred-val   { color: inherit; word-break: break-all; flex: 1; }
-
-/* highlight the specific changed component */
-.re-pred-hl-field { background: rgba(116,192,252,.25); border-radius: 2px; padding: 0 .15em; }
-.re-pred-hl-op    { background: rgba(255,169,77,.3);   border-radius: 2px; padding: 0 .15em; color: #ffa94d; }
-.re-pred-hl-value { background: rgba(255,107,107,.22); border-radius: 2px; padding: 0 .15em; }
-
 /* legend */
 .re-legend {
   display: flex; gap: .9rem; justify-content: center;
@@ -359,6 +288,7 @@ html[data-theme="dark"], .dark-mode {
 </style>
 
 <div id="rule-explorer">
+  <p id="re-status" role="status" aria-live="polite"></p>
 
   <!-- ── Repo switcher ── -->
   <div class="re-repo-switcher">
@@ -412,8 +342,25 @@ html[data-theme="dark"], .dark-mode {
   <!-- ── Rule panel ── -->
   <div id="re-rule-panel" class="hidden">
     <div id="re-rule-header"></div>
+    <form id="re-version-form" class="re-controls">
+      <label for="re-version-a">Version A</label>
+      <input id="re-version-a" type="number" min="1" step="1" required aria-describedby="re-comparison-error">
+      <label for="re-version-b">Version B</label>
+      <input id="re-version-b" type="number" min="1" step="1" required aria-describedby="re-comparison-error">
+      <button class="re-compare-btn" type="submit">Compare versions</button>
+    </form>
+    <p id="re-comparison-error" role="alert"></p>
+    <div class="re-controls" role="group" aria-label="Timeline zoom">
+      <button id="re-zoom-in" class="re-reset-btn" type="button">Zoom in</button>
+      <button id="re-zoom-out" class="re-reset-btn" type="button">Zoom out</button>
+      <button id="re-zoom-reset" class="re-reset-btn" type="button">Fit timeline</button>
+      <span id="re-zoom-level" aria-live="polite">1×</span>
+      <span class="small text-muted">Scroll horizontally when zoomed in.</span>
+    </div>
     <div id="re-timeline-wrapper">
-      <svg id="re-timeline"></svg>
+      <div id="re-timeline-scroll" tabindex="0" role="region" aria-label="Rule version timeline">
+        <svg id="re-timeline"></svg>
+      </div>
       <div id="re-tooltip"></div>
     </div>
     <div class="re-legend">

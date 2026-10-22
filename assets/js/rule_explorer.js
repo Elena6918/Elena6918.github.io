@@ -14,6 +14,12 @@
   let selB = null;        // version_index of selection B
   let browseOffset = 0;   // how many browse results are currently shown
   const BROWSE_PAGE = 40;
+  let timelineZoom = 1;
+  let currentRuleId = null;
+  let loadSequence = 0;
+  let timelineXs = [];
+  const initialParams = new URLSearchParams(window.location.search);
+  if (initialParams.get("repo") === "ssc") activeRepo = "ssc";
 
   /* ── DOM refs (populated on DOMContentLoaded) ──────────────── */
   let $input, $dropdown, $rulePanel, $ruleHeader,
@@ -48,10 +54,13 @@
     $browseList    = document.getElementById("re-browse-list");
 
     bindRepoSwitch();
-    loadIndex();
+    document.querySelectorAll(".re-repo-btn").forEach(b =>
+      b.classList.toggle("active", b.dataset.repo === activeRepo));
+    loadIndex(initialParams);
     bindSearch();
     bindBrowse();
     bindTabs();
+    bindComparisonControls();
     window.addEventListener("resize", () => { if (currentRule) drawTimeline(); });
 
     // mousemove for tooltip positioning — must bind after $timelineSvg is set
@@ -74,7 +83,10 @@
         // reset all state for the new repo
         searchIndex = [];
         currentRule = null;
+        currentRuleId = null;
+        loadSequence++;
         selA = null; selB = null;
+        updateComparisonUrl();
         $input.value = "";
         closeDropdown();
         show($rulePanel,  false);
@@ -86,15 +98,25 @@
     });
   }
 
-  function loadIndex() {
+  function loadIndex(params) {
+    const repo = activeRepo;
     fetch(dataBase() + "index.json")
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error("Index unavailable"); return r.json(); })
       .then(data => {
+        if (repo !== activeRepo) return;
         searchIndex = data;
+        $filterCat.innerHTML = '<option value="">All categories</option>';
         populateCategoryFilter();
         renderBrowseResults();
+        if (params && params.get("rule")) {
+          const rule = searchIndex.find(r => r.id === params.get("rule") || r.name === params.get("rule"));
+          if (rule) {
+            $input.value = rule.name;
+            loadRule(rule.id, params);
+          } else setStatus("The linked rule could not be found. Try searching by name.");
+        }
       })
-      .catch(() => console.error("Could not load rule index."));
+      .catch(() => setStatus("Could not load the rule index. Please reload to try again."));
   }
 
   function populateCategoryFilter() {
@@ -107,21 +129,98 @@
     });
   }
 
-  function loadRule(id) {
+  function loadRule(id, params) {
+    const sequence = ++loadSequence;
+    setStatus("Loading rule…");
     show($rulePanel, false);
     show($diffPanel, false);
     fetch(dataBase() + id + ".json")
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error("Rule unavailable"); return r.json(); })
       .then(data => {
+        if (sequence !== loadSequence) return;
         currentRule = data;
+        currentRuleId = id;
+        timelineZoom = 1;
         selA = null;
         selB = null;
+        setStatus("");
         renderRuleHeader();
+        const first = data.versions[0].vi;
+        const last = data.versions[data.versions.length - 1].vi;
+        for (const name of ["a", "b"]) {
+          const input = document.getElementById("re-version-" + name);
+          input.min = first; input.max = last;
+          input.value = "";
+          input.setCustomValidity("");
+        }
+        document.getElementById("re-comparison-error").textContent = "";
+        if (params) {
+          activeTab = params.get("tab") === "pred" ? "pred" : "detection";
+          if (params.has("a") || params.has("b")) {
+            applyVersionPair(Number(params.get("a")), Number(params.get("b")));
+          }
+        }
+        show($rulePanel, true);
         drawTimeline();
         updateHint();
-        show($rulePanel, true);
+        if (selA && selB) renderDiff();
+        else updateComparisonUrl();
       })
-      .catch(() => alert("Failed to load rule data."));
+      .catch(() => { if (sequence === loadSequence) setStatus("Failed to load rule data. Please select the rule again."); });
+  }
+
+  function setStatus(message) {
+    document.getElementById("re-status").textContent = message;
+  }
+
+  function updateComparisonUrl() {
+    const url = new URL(window.location.href);
+    for (const key of ["repo", "rule", "a", "b", "tab"]) url.searchParams.delete(key);
+    url.searchParams.set("repo", activeRepo);
+    if (currentRuleId) url.searchParams.set("rule", currentRuleId);
+    if (selA && selB) {
+      url.searchParams.set("a", selA);
+      url.searchParams.set("b", selB);
+      url.searchParams.set("tab", activeTab);
+    }
+    window.history.replaceState(null, "", url);
+  }
+
+  function applyVersionPair(a, b) {
+    const exists = vi => Number.isInteger(vi) && currentRule.versions.some(v => v.vi === vi);
+    const error = document.getElementById("re-comparison-error");
+    if (!exists(a) || !exists(b) || a === b) {
+      error.textContent = "Choose two different version numbers available in this rule’s history.";
+      return false;
+    }
+    error.textContent = "";
+    [selA, selB] = a < b ? [a, b] : [b, a];
+    return true;
+  }
+
+  function bindComparisonControls() {
+    document.getElementById("re-version-form").addEventListener("submit", e => {
+      e.preventDefault();
+      if (!currentRule) return;
+      if (!applyVersionPair(Number(document.getElementById("re-version-a").value),
+                            Number(document.getElementById("re-version-b").value))) return;
+      drawTimeline(); updateHint(); renderDiff(); centerSelection();
+    });
+    for (const [id, factor] of [["re-zoom-in", 2], ["re-zoom-out", 0.5], ["re-zoom-reset", 0]]) {
+      document.getElementById(id).addEventListener("click", () => {
+        timelineZoom = factor ? Math.max(1, Math.min(16, timelineZoom * factor)) : 1;
+        hideTooltip(); drawTimeline(); centerSelection();
+      });
+    }
+    document.getElementById("re-timeline-scroll").addEventListener("scroll", hideTooltip);
+  }
+
+  function centerSelection() {
+    if (!currentRule || !selA) return;
+    const a = currentRule.versions.findIndex(v => v.vi === selA);
+    const b = currentRule.versions.findIndex(v => v.vi === (selB || selA));
+    const scroller = document.getElementById("re-timeline-scroll");
+    scroller.scrollLeft = (timelineXs[a] + timelineXs[b]) / 2 - scroller.clientWidth / 2;
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -236,11 +335,15 @@
   function drawTimeline() {
     const versions = currentRule.versions;
     const container = $timelineSvg.parentElement;
-    const W = container.clientWidth || 800;
+    const W = (container.clientWidth || 800) * timelineZoom;
     const H = TL.padTop + 40 + TL.padBot;  // fixed height
 
     $timelineSvg.setAttribute("width", W);
     $timelineSvg.setAttribute("height", H);
+    $timelineSvg.style.width = W + "px";
+    document.getElementById("re-zoom-level").textContent = timelineZoom + "×";
+    document.getElementById("re-zoom-in").disabled = timelineZoom >= 16;
+    document.getElementById("re-zoom-out").disabled = timelineZoom <= 1;
     $timelineSvg.innerHTML = "";
 
     const axisY = TL.padTop;
@@ -264,6 +367,7 @@
       const newW = xs[xs.length - 1] - axisX0;
       xs = xs.map(x => axisX0 + (x - axisX0) * (axisW / newW));
     }
+    timelineXs = xs;
 
     const svg = ns => document.createElementNS("http://www.w3.org/2000/svg", ns);
 
@@ -340,7 +444,7 @@
                        fill: "var(--re-label-color)" });
       vnum.textContent = "v" + v.vi;
       /* show every label when <=15 versions, else every 5th */
-      if (versions.length <= 15 || v.vi % 5 === 0 || isA || isB) {
+      if (versions.length <= 15 || timelineZoom >= 4 || v.vi % 5 === 0 || isA || isB) {
         $timelineSvg.appendChild(vnum);
       }
     });
@@ -359,6 +463,7 @@
     }
     drawTimeline();
     updateHint();
+    updateComparisonUrl();
   }
 
   /* ── tooltip ────────────────────────────────────────────────── */
@@ -379,7 +484,7 @@
 
   function positionTooltip(e) {
     if ($tooltip.style.display === "none") return;
-    const rect = $timelineSvg.parentElement.getBoundingClientRect();
+    const rect = document.getElementById("re-timeline-wrapper").getBoundingClientRect();
     const x = e.clientX - rect.left + 12;
     const y = e.clientY - rect.top - 10;
     $tooltip.style.left = Math.min(x, rect.width - 220) + "px";
@@ -388,6 +493,8 @@
 
   /* ── hint text + compare button ────────────────────────────── */
   function updateHint() {
+    document.getElementById("re-version-a").value = selA || "";
+    document.getElementById("re-version-b").value = selB || "";
     if (!selA && !selB) {
       $hint.innerHTML = `<span>Click a dot to select version <strong>A</strong></span>`;
     } else if (selA && !selB) {
@@ -403,6 +510,7 @@
         show($diffPanel, false);
         drawTimeline();
         updateHint();
+        updateComparisonUrl();
       });
     }
   }
@@ -761,6 +869,7 @@
       activeTab = tab.dataset.tab;
       document.querySelectorAll(".re-tab").forEach(t => t.classList.toggle("active", t === tab));
       renderDiffContent();
+      updateComparisonUrl();
     });
   }
 
@@ -785,6 +894,7 @@
       </div>`;
 
     renderDiffContent();
+    updateComparisonUrl();
     show($diffPanel, true);
     $diffPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
